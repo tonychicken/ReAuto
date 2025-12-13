@@ -1,0 +1,86 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+*.lcov
+.nyc_output
+
+# Production
+dist/
+build/
+*.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# Sensitive information
+docs/
+docs2/
+docs3/
+重要密碼資訊/
+動工順序.txt
+流程文件.txt
+DEPLOYMENT.md
+BUILD_GUIDE.md
+**/client_secret*.json
+**/*secret*.json
+**/*credentials*.json
+
+
+
+# OS files
+Thumbs.db
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# pnpm
+.pnpm-store/
+
+# TypeScript
+*.tsbuildinfo
+
+# Vite
+.vite/
+
+# Vue
+.vue-global-types/
+
+# Build outputs
+*.map
+*.d.ts.map
+
