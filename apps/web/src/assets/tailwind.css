@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* 淺色模式顏色變數 */
+    --app-bg: #f4f6fb;
+    --app-surface: #ffffff;
+    --app-muted: #eef1f7;
+    --app-border: #e2e8f0;
+    --app-sidebar: #f8fafc; /* 淺色模式：淺灰背景 */
+    --app-sidebar-border: #e2e8f0; /* 淺色模式：淺灰邊框 */
+    --app-sidebar-accent: #0284c7; /* 淺色模式：深藍強調色 */
+    --app-text-primary: #0f172a;
+    --app-text-secondary: #475569;
+    --app-text-muted: #64748b;
+  }
+
+  .dark {
+    /* 深色模式顏色變數 */
+    --app-bg: #0f172a;
+    --app-surface: #1e293b;
+    --app-muted: #1e293b;
+    --app-border: #334155;
+    --app-sidebar: #020617; /* 深色模式：深色背景 */
+    --app-sidebar-border: #1e293b; /* 深色模式：深色邊框 */
+    --app-sidebar-accent: #0ea5e9; /* 深色模式：亮藍強調色 */
+    --app-text-primary: #f1f5f9;
+    --app-text-secondary: #cbd5e1;
+    --app-text-muted: #94a3b8;
+  }
+
+  body {
+    /* 全站背景與文字顏色走 app 統一色系 */
+    @apply bg-[var(--app-bg)] text-[var(--app-text-primary)];
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+}
+
