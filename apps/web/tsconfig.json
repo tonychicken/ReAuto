@@ -1,0 +1,29 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "jsx": "preserve",
+    "lib": ["ESNext", "DOM"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@core": ["../../packages/core/src/index.ts"],
+      "@core/*": ["../../packages/core/src/*"],
+      "@ui": ["../../packages/ui/src/index.ts"],
+      "@ui/*": ["../../packages/ui/src/*"]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "src/**/*.vue",
+    "vite.config.ts",
+    "../../packages/ui/src/**/*.ts",
+    "../../packages/ui/src/**/*.d.ts",
+    "../../packages/ui/src/**/*.vue",
+    "../../packages/core/src/**/*.ts",
+    "../../packages/core/src/**/*.d.ts"
+  ]
+}
+
+
