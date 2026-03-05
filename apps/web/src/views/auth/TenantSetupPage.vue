@@ -131,7 +131,7 @@ async function handleCreateTenant() {
     await refreshAuth();
 
     // 4. 導向到首頁
-    router.push("/inventory");
+    router.push("/manager/inventory");
   } catch (e: any) {
     console.error("建立租戶失敗", e);
     error.value = e?.message ?? "建立租戶失敗，請稍後再試";

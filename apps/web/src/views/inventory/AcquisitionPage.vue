@@ -204,11 +204,12 @@
         </div>
 
         <!-- Actions -->
-        <div class="flex items-center gap-3 border-t border-app-border pt-4">
+        <div class="flex flex-wrap items-center gap-3 border-t border-app-border pt-4">
           <button
+            v-if="showPrimaryButton"
             type="submit"
             class="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-primary-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
-            :disabled="submitting"
+            :disabled="submitting || isReadOnly"
           >
             <svg
               v-if="submitting"
@@ -230,11 +231,22 @@
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
               />
             </svg>
-            {{ submitting ? "處理中..." : "完成入庫" }}
+            {{ submitting ? "處理中..." : primaryLabel }}
           </button>
           <button
+            v-if="mode === 'create' && canSubmitReview"
             type="button"
-            class="rounded-lg border border-app-border px-5 py-2.5 text-sm font-medium text-app-text-primary transition hover:bg-app-muted"
+            class="rounded-lg border border-primary-500 px-5 py-2.5 text-sm font-medium text-primary-600 hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-50"
+            :disabled="submitting"
+            @click="handleSubmitForReview"
+          >
+            送出審核
+          </button>
+          <button
+            v-if="mode === 'create'"
+            type="button"
+            class="rounded-lg border border-app-border px-5 py-2.5 text-sm font-medium text-app-text-primary transition hover:bg-app-muted disabled:cursor-not-allowed disabled:opacity-50"
+            :disabled="submitting"
             @click="handleSaveDraft"
           >
             儲存草稿
@@ -242,9 +254,9 @@
           <button
             type="button"
             class="rounded-lg px-5 py-2.5 text-sm font-medium text-app-text-secondary transition hover:text-app-text-primary"
-            @click="$router.back()"
+            @click="handleCancel"
           >
-            取消
+            {{ mode === 'edit' ? "關閉" : "取消" }}
           </button>
         </div>
 
@@ -257,8 +269,9 @@
       </form>
     </section>
 
-    <!-- Success Dialog -->
+    <!-- Success Dialog（僅獨立頁面使用，不在 Dialog 模式顯示） -->
     <Transition
+      v-if="!embedded"
       enter-active-class="transition duration-200 ease-out"
       enter-from-class="opacity-0"
       enter-to-class="opacity-100"
@@ -323,18 +336,42 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { vehicleManager, vehicleInventoryManager, acquisitionManager, contactManager, warehouseManager } from "@core";
 import type { Warehouse } from "@core";
+import { usePermissions } from "@/composables/usePermissions";
 
 const router = useRouter();
+const emit = defineEmits<{
+  (e: "completed"): void;
+  (e: "cancel"): void;
+}>();
+
+const props = withDefaults(
+  defineProps<{
+    mode?: "create" | "edit";
+    embedded?: boolean;
+    vehicleId?: string | null;
+    inventoryId?: string | null;
+  }>(),
+  {
+    mode: "create",
+    embedded: false,
+    vehicleId: null,
+    inventoryId: null
+  }
+);
+
+const mode = props.mode;
+const embedded = props.embedded;
 
 const warehouses = ref<Warehouse[]>([]);
 const submitting = ref(false);
 const error = ref<string | null>(null);
 const showSuccess = ref(false);
 const createdVehicleId = ref<string | null>(null);
+const currentStatus = ref<string>("draft");
 
 const form = reactive({
   // 車輛基本資訊
@@ -354,6 +391,34 @@ const form = reactive({
   seller_phone: ""
 });
 
+const READONLY_STATUSES = ["reserved", "sold", "closed", "scrapped"];
+const isReadOnly = ref(false);
+
+const { isManagerOrAbove, isStaffOrAbove } = usePermissions();
+
+const canCompleteIntake = computed(() => {
+  // 只有主管以上可以「完成入庫」
+  return isManagerOrAbove.value;
+});
+
+const canSubmitReview = computed(() => {
+  // staff 以上即可送審（owner/manager 也可以）
+  return isStaffOrAbove.value;
+});
+
+const showPrimaryButton = computed(() => {
+  if (mode === "create") return canCompleteIntake.value;
+  return !isReadOnly.value;
+});
+
+const primaryLabel = computed(() => {
+  if (mode === "create") {
+    return "完成入庫";
+  }
+  // 編輯模式：依狀態顯示「儲存」或只讀
+  return "儲存";
+});
+
 async function loadWarehouses() {
   try {
     warehouses.value = await warehouseManager.list();
@@ -362,9 +427,53 @@ async function loadWarehouses() {
   }
 }
 
+async function loadExistingData() {
+  if (!props.vehicleId) return;
+
+  try {
+    // 載入車輛主檔
+    const vehicle = await vehicleManager.getById(props.vehicleId);
+    if (vehicle) {
+      form.make = vehicle.make;
+      form.model = vehicle.model;
+      form.year = vehicle.year as number | null;
+      form.color = vehicle.color || "";
+      form.vin = vehicle.vin || "";
+      form.plate_number = vehicle.plate_number || "";
+      form.mileage_km = vehicle.mileage_km as number | null;
+      currentStatus.value = vehicle.status;
+      isReadOnly.value = READONLY_STATUSES.includes(vehicle.status);
+    }
+
+    // 載入庫存資料
+    const inventoryList = await vehicleInventoryManager.listByVehicle(props.vehicleId);
+    const inventory =
+      inventoryList.find((i) => i.id === props.inventoryId) ?? inventoryList[0];
+    if (inventory) {
+      form.warehouse_id = inventory.warehouse_id;
+      form.purchase_date = inventory.stock_date;
+    }
+
+    // 載入收購資料
+    const acquisition = await acquisitionManager.getByVehicleId(props.vehicleId);
+    if (acquisition) {
+      form.purchase_price = acquisition.purchase_price;
+      form.purchase_date = acquisition.purchase_date;
+      // 賣家資訊目前暫不回填（缺少 contacts manager），之後再補
+    }
+  } catch (e) {
+    console.error("載入車輛資料失敗", e);
+  }
+}
+
 async function handleSubmit() {
   if (!form.make.trim() || !form.model.trim() || !form.year || !form.purchase_price || !form.warehouse_id) {
     error.value = "請填寫所有必填欄位";
+    return;
+  }
+
+  if (!canCompleteIntake.value) {
+    error.value = "您沒有執行「完成入庫」的權限，請聯絡主管。";
     return;
   }
 
@@ -384,15 +493,7 @@ async function handleSubmit() {
       status: "in_preparation"
     });
 
-    // 2. 建立庫存紀錄
-    await vehicleInventoryManager.create({
-      vehicle_id: vehicle.id,
-      warehouse_id: form.warehouse_id,
-      status: "in_stock",
-      stock_date: form.purchase_date
-    });
-
-    // 3. 建立賣家聯絡人（如果有填寫）
+    // 2. 建立賣家聯絡人（如果有填寫）
     let sellerContactId: string | null = null;
     if (form.seller_name.trim() || form.seller_phone.trim()) {
       const contact = await contactManager.create({
@@ -403,19 +504,91 @@ async function handleSubmit() {
       sellerContactId = contact.id;
     }
 
-    // 4. 建立收購紀錄
-    await acquisitionManager.create({
+    // 3. 建立收購紀錄（先以 draft 建立，隨後標記為 approved）
+    const acquisition = await acquisitionManager.create({
       vehicle_id: vehicle.id,
       seller_contact_id: sellerContactId,
       purchase_price: form.purchase_price,
       purchase_date: form.purchase_date
     });
 
+    // 4. 完成入庫：更新收購狀態為 approved，並建立庫存紀錄
+    await acquisitionManager.updateStatus(acquisition.id, "approved");
+
+    await vehicleInventoryManager.create({
+      vehicle_id: vehicle.id,
+      warehouse_id: form.warehouse_id,
+      status: "in_stock",
+      stock_date: form.purchase_date
+    });
+
     createdVehicleId.value = vehicle.id;
-    showSuccess.value = true;
+    if (!embedded) {
+      showSuccess.value = true;
+    }
+    emit("completed");
   } catch (e: any) {
     console.error("入庫失敗", e);
     error.value = e?.message ?? "入庫失敗，請稍後再試";
+  } finally {
+    submitting.value = false;
+  }
+}
+
+async function handleSubmitForReview() {
+  if (!form.make.trim() || !form.model.trim() || !form.year || !form.purchase_price || !form.warehouse_id) {
+    error.value = "請填寫所有必填欄位（送審前需完整資料）";
+    return;
+  }
+
+  if (!canSubmitReview.value) {
+    error.value = "您沒有送審權限，請聯絡主管。";
+    return;
+  }
+
+  submitting.value = true;
+  error.value = null;
+
+  try {
+    // 1. 建立車輛（維持 draft 狀態，尚未正式入庫）
+    const vehicle = await vehicleManager.create({
+      make: form.make.trim(),
+      model: form.model.trim(),
+      year: form.year,
+      color: form.color.trim() || null,
+      vin: form.vin.trim() || null,
+      plate_number: form.plate_number.trim() || null,
+      mileage_km: form.mileage_km ?? null,
+      status: "draft"
+    });
+
+    // 2. 建立賣家聯絡人（如果有填寫）
+    let sellerContactId: string | null = null;
+    if (form.seller_name.trim() || form.seller_phone.trim()) {
+      const contact = await contactManager.create({
+        type: "seller",
+        name: form.seller_name.trim() || "未命名",
+        phone: form.seller_phone.trim() || null
+      });
+      sellerContactId = contact.id;
+    }
+
+    // 3. 建立收購紀錄，狀態為 submitted（送審）
+    await acquisitionManager.create({
+      vehicle_id: vehicle.id,
+      seller_contact_id: sellerContactId,
+      purchase_price: form.purchase_price!,
+      purchase_date: form.purchase_date,
+      status: "submitted"
+    });
+
+    if (!embedded) {
+      router.push("/manager/inventory");
+    }
+    emit("completed");
+  } catch (e: any) {
+    console.error("送審失敗", e);
+    error.value = e?.message ?? "送審失敗，請稍後再試";
   } finally {
     submitting.value = false;
   }
@@ -443,17 +616,7 @@ async function handleSaveDraft() {
       status: "draft"
     });
 
-    // 如果有選擇倉庫，也建立庫存紀錄
-    if (form.warehouse_id) {
-      await vehicleInventoryManager.create({
-        vehicle_id: vehicle.id,
-        warehouse_id: form.warehouse_id,
-        status: "in_stock",
-        stock_date: form.purchase_date || new Date().toISOString().split("T")[0]
-      });
-    }
-
-    // 如果有填寫收購資訊，建立收購紀錄
+    // 如果有填寫收購資訊，建立收購紀錄（維持 draft 狀態，不入庫）
     if (form.purchase_price) {
       let sellerContactId: string | null = null;
       if (form.seller_name.trim() || form.seller_phone.trim()) {
@@ -473,7 +636,10 @@ async function handleSaveDraft() {
       });
     }
 
-    router.push("/inventory");
+    if (!embedded) {
+      router.push("/manager/inventory");
+    }
+    emit("completed");
   } catch (e: any) {
     console.error("儲存草稿失敗", e);
     error.value = e?.message ?? "儲存草稿失敗，請稍後再試";
@@ -486,16 +652,30 @@ function goToDetail() {
   if (createdVehicleId.value) {
     router.push(`/vehicles/${createdVehicleId.value}`);
   } else {
-    router.push("/inventory");
+    router.push("/manager/inventory");
   }
 }
 
 function goToList() {
-  router.push("/inventory");
+  router.push("/manager/inventory");
+}
+
+function handleCancel() {
+  emit("cancel");
+  if (!embedded) {
+    if (window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/manager/inventory");
+    }
+  }
 }
 
 onMounted(() => {
   loadWarehouses();
+  if (mode === "edit" && props.vehicleId) {
+    loadExistingData();
+  }
 });
 </script>
 

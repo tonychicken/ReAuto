@@ -53,17 +53,22 @@ onMounted(async () => {
 
     // 初始化認證狀態
     await initAuth();
-    
+
     // 檢查是否有 tenant
     const authContext = getAuthContext();
-    
+
     if (!authContext.tenant) {
-      // 新用戶沒有 tenant，導向到租戶設定頁面
-      // App.vue 會自動顯示 TenantSetupPage
-      router.push("/");
+      // 新用戶沒有租戶，導向到 Onboarding 流程
+      router.push({
+        name: "onboarding",
+        query: {
+          source: "google",
+          email: session.user.email ?? undefined
+        }
+      });
     } else {
-      // 已有 tenant，導向到首頁
-      router.push("/");
+      // 已有租戶，直接導向到庫存系統
+      router.push({ name: "manager-inventory" });
     }
   } catch (error) {
     console.error("OAuth callback 處理失敗", error);

@@ -17,13 +17,34 @@
 -- 1. 多租戶與帳號結構
 -- ============================================================================
 
--- 租戶表（企業會員）
+-- 租戶表（個人 / 企業 會員 + 訂閱資訊）
 create table if not exists public.tenants (
   id uuid primary key default gen_random_uuid(),
-  name text not null,                    -- 公司/組織名稱
-  plan_type text default 'free',         -- 方案類型：free / standard / pro
-  status text default 'active',          -- 租戶狀態：active / suspended
-  config jsonb,                          -- 未來擴充各種設定（顯示欄位、貨幣、稅率…）
+  name text not null,                        -- 顯示名稱（公司名稱或個人車庫名稱）
+
+  -- 用戶類型
+  user_type text default 'individual',       -- 個人 / 企業：individual / enterprise
+
+  -- 子網域（僅企業用戶使用，個人版為 null）
+  subdomain text unique,                     -- 企業版子網域，例如：company.reauto.com；個人版為 null
+
+  -- 方案與訂閱狀態
+  plan_type text default 'trial',            -- 方案類型：trial / standard / pro（可依實作調整）
+  subscription_status text default 'trial',  -- 訂閱狀態：trial / active / expired / cancelled
+  subscription_tier text,                    -- 方案階級：personal_standard / personal_pro / biz_standard / biz_pro ...（你自訂）
+  trial_ends_at timestamptz,                 -- 試用結束時間
+  subscription_ends_at timestamptz,          -- 付費期結束時間（可選）
+
+  -- 使用量限制（依方案）
+  vehicle_limit integer default 5,           -- 車輛數上限（試用或方案）
+  current_vehicle_count integer default 0,   -- 目前車輛數（方便快速判斷是否超量）
+
+  -- 建立者（用來判斷誰是「註冊者」，只有他看到試用 Dialog）
+  created_by uuid references public.profiles(id) on delete set null, -- 建立此租戶的使用者（profiles.id）
+
+  -- 其他設定
+  status text default 'active',              -- 租戶狀態：active / suspended / expired
+  config jsonb,                              -- 未來擴充各種設定（顯示欄位、貨幣、稅率…）
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -38,13 +59,17 @@ create table if not exists public.profiles (
 );
 
 -- 租戶成員表
-create table if not exists public.tenant_members (
+create table public.tenant_members (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null references public.tenants(id) on delete cascade,
   user_id uuid not null references public.profiles(id) on delete cascade,
-  role text not null,                    -- 基礎角色：owner / manager / staff / viewer
-  permissions jsonb,                     -- 個人自訂覆蓋預設權限
-  status text default 'active',         -- 成員狀態：active / invited / disabled
+  role text not null,                        -- 基礎角色：owner / manager / staff / viewer
+  permissions jsonb,                         -- 個人自訂覆蓋預設權限
+  status text default 'active',              -- 成員狀態：active / invited / disabled
+  is_deleted boolean default false,          -- 軟刪除標記（刪除邀請碼時標記為 true）
+  organization_id uuid references public.organizations(id) on delete set null, -- 所屬組織
+  department_id uuid references public.departments(id) on delete set null,    -- 所屬部門
+  custom_role_id uuid references public.custom_roles(id) on delete set null,  -- 自訂角色
   created_at timestamptz default now(),
   unique(tenant_id, user_id)
 );
@@ -168,6 +193,8 @@ create table if not exists public.vehicle_details (
   has_transfer_done boolean default false,  -- 過戶完成
   transfer_documents jsonb,              -- 過戶文件 URL 陣列（例如：過戶登記書掃描）
   keys_count smallint default 0,        -- 鑰匙數量
+  has_registration boolean default false, -- 是否已有行照
+  registration_images jsonb,           -- 行照掃描檔 URL 陣列
   has_tax_certificate boolean default false,  -- 完稅證明
   tax_certificate_images jsonb,        -- 完稅證明掃描檔 URL 陣列
   has_origin_certificate boolean default false,  -- 出廠證明
@@ -243,6 +270,10 @@ create table if not exists public.acquisitions (
   estimated_repair_cost numeric,        -- 預估修繕成本
   other_costs jsonb,                    -- 其他成本（牌照、保險、過戶費…）
   purchasing_staff_id uuid references public.tenant_members(id) on delete set null,  -- 採購人員
+  status text default 'draft',          -- 收購狀態：draft / submitted / approved / rejected
+  approved_by uuid references public.tenant_members(id) on delete set null, -- 審核通過的成員 ID
+  approved_at timestamptz,              -- 審核時間
+  rejected_reason text,                 -- 退回原因
   note text,                            -- 備註
   created_at timestamptz default now()
 );
@@ -291,7 +322,12 @@ create table if not exists public.listings (
 -- ============================================================================
 
 -- tenants 索引
-create index if not exists idx_tenants_status on public.tenants(status);
+create index if not exists idx_tenants_status               on public.tenants(status);
+create index if not exists idx_tenants_user_type            on public.tenants(user_type);
+create index if not exists idx_tenants_subdomain            on public.tenants(subdomain);
+create index if not exists idx_tenants_subscription_status  on public.tenants(subscription_status);
+create index if not exists idx_tenants_trial_ends_at        on public.tenants(trial_ends_at);
+create index if not exists idx_tenants_created_by           on public.tenants(created_by);
 
 -- tenant_members 索引
 create index if not exists idx_tenant_members_tenant_id on public.tenant_members(tenant_id);
@@ -357,6 +393,8 @@ create index if not exists idx_contacts_type on public.contacts(type);
 create index if not exists idx_acquisitions_tenant_id on public.acquisitions(tenant_id);
 create index if not exists idx_acquisitions_vehicle_id on public.acquisitions(vehicle_id);
 create index if not exists idx_acquisitions_seller_contact_id on public.acquisitions(seller_contact_id);
+create index if not exists idx_acquisitions_status on public.acquisitions(status);
+create index if not exists idx_acquisitions_approved_by on public.acquisitions(approved_by);
 
 -- sales 索引
 create index if not exists idx_sales_tenant_id on public.sales(tenant_id);

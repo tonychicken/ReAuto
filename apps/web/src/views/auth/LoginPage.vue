@@ -5,7 +5,7 @@
         <!-- Logo / Title -->
         <div class="mb-8 text-center">
           <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-100">
-            車商庫存管理平台
+            ReAuto
           </h1>
           <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
             {{ showSignUp ? "建立新帳號" : showForgotPassword ? "重設密碼" : "請登入以繼續使用" }}
@@ -302,7 +302,7 @@
 import { ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { supabaseClient } from "@core";
-import { initAuth } from "@core";
+import { initAuth, getAuthContext } from "@core";
 
 const router = useRouter();
 const route = useRoute();
@@ -344,12 +344,30 @@ async function handleLogin() {
       throw authError;
     }
 
-      // 初始化認證狀態
-      await initAuth();
+    // 初始化認證狀態
+    await initAuth();
 
-      // 檢查是否有 redirect query 參數，有的話導向該頁面，否則導向首頁
-      const redirect = route.query.redirect as string;
-      router.push(redirect || "/");
+    const redirect = route.query.redirect as string | undefined;
+    if (redirect) {
+      router.push(redirect);
+      return;
+    }
+
+    const authContext = getAuthContext();
+
+    if (!authContext.tenant) {
+      // 新用戶尚未建立租戶，導向至 Onboarding 流程
+      router.push({
+        name: "onboarding",
+        query: {
+          source: "login",
+          email: form.value.email
+        }
+      });
+    } else {
+      // 已有租戶，直接進入庫存系統
+      router.push({ name: "manager-inventory" });
+    }
   } catch (e: any) {
     error.value = e?.message ?? "登入失敗，請檢查您的帳號密碼";
   } finally {

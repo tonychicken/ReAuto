@@ -17,7 +17,7 @@
               v-if="!collapsed"
               class="w-full truncate text-[11px] font-semibold tracking-wide text-app-text-primary text-center bg-app-surface rounded-md px-2 py-1"
             >
-              車商庫存管理平台
+              ReAuto
             </p>
           </slot>
         </div>

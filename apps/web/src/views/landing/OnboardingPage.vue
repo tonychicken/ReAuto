@@ -163,7 +163,7 @@
             <!-- 登入表單 -->
             <div class="mt-8 w-full max-w-md mx-auto">
               <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-6 space-y-4">
-                <div v-if="isGoogleLoggedIn" class="text-center">
+                <div v-if="isLoggedIn" class="text-center">
                   <div class="mb-4">
                     <div class="mx-auto h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
                       <svg class="h-8 w-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -172,7 +172,7 @@
                     </div>
                   </div>
                   <p class="text-slate-600 dark:text-slate-400 mb-4">
-                    您已使用 Google 登入
+                    您已登入，可以直接進入系統
                   </p>
                   <button
                     type="button"
@@ -252,7 +252,7 @@
 import { ref, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { supabaseClient } from "@core";
-import { initAuth } from "@core";
+import { initAuth, getAuthContext } from "@core";
 
 const router = useRouter();
 const route = useRoute();
@@ -260,7 +260,7 @@ const route = useRoute();
 const currentSlide = ref(0);
 const showNextButton = ref(false);
 const loading = ref(false);
-const isGoogleLoggedIn = ref(false);
+const isLoggedIn = ref(false);
 
 const loginForm = ref({
   email: (route.query.email as string) || "",
@@ -279,7 +279,7 @@ const slides = [
 onMounted(async () => {
   const { data: { session } } = await supabaseClient.auth.getSession();
   if (session) {
-    isGoogleLoggedIn.value = true;
+    isLoggedIn.value = true;
     // 如果已登入且是最後一頁，自動跳轉
     if (currentSlide.value === slides.length - 1) {
       await goToDashboard();
@@ -315,7 +315,6 @@ async function handleLogin() {
       throw error;
     }
 
-    await initAuth();
     await goToDashboard();
   } catch (error: any) {
     alert(error?.message || "登入失敗，請檢查您的帳號密碼");
@@ -325,7 +324,17 @@ async function handleLogin() {
 }
 
 async function goToDashboard() {
-  await router.push("/");
+  // 重新初始化認證狀態，取得最新租戶資訊
+  await initAuth();
+  const authContext = getAuthContext();
+
+  if (!authContext.tenant) {
+    // 尚未建立租戶，導向到租戶設定 / 方案選擇頁
+    await router.push({ name: "tenant-setup" });
+  } else {
+    // 已有租戶，直接進入庫存系統
+    await router.push({ name: "manager-inventory" });
+  }
 }
 </script>
 

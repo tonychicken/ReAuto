@@ -2,11 +2,6 @@
   <!-- 認證相關頁面：不顯示 AppShell -->
   <router-view v-if="isAuthPage" />
   
-  <!-- 如果沒有租戶，顯示租戶設定頁面（不顯示 AppShell） -->
-  <TenantSetupPage
-    v-else-if="!loading && !hasTenant && isAuthenticated"
-  />
-  
   <!-- 其他頁面：顯示 AppShell（需要登入） -->
   <AppShellAny
     v-else-if="isAuthenticated"
@@ -258,7 +253,6 @@ import { useRouter, useRoute } from "vue-router";
 import { AppShell } from "@ui";
 import SidebarNav from "@/components/SidebarNav.vue";
 import SettingsDialog from "@/components/SettingsDialog.vue";
-import TenantSetupPage from "@/views/auth/TenantSetupPage.vue";
 import { useAuth, initAuthState } from "@/composables/useAuth";
 import { useTheme, type ThemeMode } from "@/composables/useTheme";
 
@@ -270,7 +264,7 @@ const route = useRoute();
 
 // 檢查是否為認證相關頁面或行銷頁面（不需要 AppShell）
 const isAuthPage = computed(() => {
-  const authPages = ["login", "auth-callback", "reset-password", "landing", "onboarding"];
+  const authPages = ["login", "auth-callback", "reset-password", "landing", "onboarding", "tenant-setup"];
   return authPages.includes(route.name as string);
 });
 
@@ -283,17 +277,9 @@ const sidebarSections = [
     label: "後台管理清單",
     icon: "🛖",
     items: [
-      { id: "inventory-dashboard", label: "車輛入庫", to: "/inventory" },
+      { id: "inventory-dashboard", label: "車輛入庫", to: "/manager/inventory" },
       { id: "warehouses", label: "倉庫據點管理", to: "/manager/warehouses" },
       { id: "partners", label: "維修 / 服務廠", to: "/manager/partners" }
-    ]
-  },
-  {
-    id: "vehicles",
-    label: "車輛管理",
-    icon: "🚘",
-    items: [
-      { id: "vehicles-dashboard", label: "車輛清單", to: "/manager/vehicles" }
     ]
   },
   {

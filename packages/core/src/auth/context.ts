@@ -51,8 +51,9 @@ export function getAuthContext(): AuthContext {
 export async function initAuth(): Promise<AuthContext> {
   isLoading = true;
   try {
+    console.log("[initAuth] before getUser", new Date().toISOString());
     const { data: { user: authUser }, error: authError } = await supabaseClient.auth.getUser();
-
+    console.log("[initAuth] after getUser", { authUser, authError });
     if (authError || !authUser) {
       currentUser = null;
       currentTenant = null;

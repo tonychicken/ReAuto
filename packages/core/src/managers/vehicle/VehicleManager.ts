@@ -51,6 +51,22 @@ export class VehicleManager {
     return (data ?? []) as Vehicle[];
   }
 
+  async getById(id: string): Promise<Vehicle | null> {
+    const { data, error } = await supabaseClient
+      .from("vehicles")
+      .select(
+        "id, vin, plate_number, make, model, trim, year, color, mileage_km, fuel_type, transmission, status, cover_image_url, tags, created_at"
+      )
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+
+    return (data as Vehicle) ?? null;
+  }
+
   async create(payload: UpsertVehiclePayload): Promise<Vehicle> {
     const { data, error } = await supabaseClient
       .from("vehicles")

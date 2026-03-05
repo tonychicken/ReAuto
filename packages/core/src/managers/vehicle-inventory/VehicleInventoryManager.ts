@@ -1,4 +1,5 @@
 import { supabaseClient } from "../../supabase/client";
+import { getCurrentTenantId } from "../../auth/context";
 
 export interface VehicleInventory {
   id: string;
@@ -109,9 +110,15 @@ export class VehicleInventoryManager {
    * 新增庫存記錄（將車輛加入倉庫）
    */
   async create(payload: UpsertVehicleInventoryPayload): Promise<VehicleInventory> {
+    const tenantId = getCurrentTenantId();
+    if (!tenantId) {
+      throw new Error("未選擇租戶");
+    }
+
     const { data, error } = await supabaseClient
       .from("vehicle_inventory")
       .insert({
+        tenant_id: tenantId,
         vehicle_id: payload.vehicle_id,
         warehouse_id: payload.warehouse_id,
         location_code: payload.location_code ?? null,

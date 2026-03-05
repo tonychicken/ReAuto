@@ -12,13 +12,37 @@
         @click.self="emit('update:open', false)"
       >
         <div class="flex h-[90vh] w-full max-w-5xl overflow-hidden rounded-2xl bg-white dark:bg-slate-900 shadow-2xl">
-          <!-- 左側：產品介紹 -->
+          <!-- 左側：產品介紹 + 個人/企業頁籤 -->
           <div class="hidden lg:flex w-1/2 flex-col border-r border-slate-200 dark:border-slate-700 bg-gradient-to-br from-blue-50 to-slate-50 dark:from-slate-800 dark:to-slate-900">
             <div class="flex-1 overflow-y-auto p-8">
+              <!-- 方案頁籤 -->
+              <div class="mb-6 flex rounded-xl bg-white/70 dark:bg-slate-900/40 p-1">
+                <button
+                  type="button"
+                  class="flex-1 rounded-lg px-4 py-2 text-sm font-medium transition"
+                  :class="localRegisterType === 'individual'
+                    ? 'bg-blue-600 text-white shadow'
+                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100/70 dark:hover:bg-slate-800/60'"
+                  @click="localRegisterType = 'individual'"
+                >
+                  個人版
+                </button>
+                <button
+                  type="button"
+                  class="flex-1 rounded-lg px-4 py-2 text-sm font-medium transition"
+                  :class="localRegisterType === 'enterprise'
+                    ? 'bg-blue-600 text-white shadow'
+                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100/70 dark:hover:bg-slate-800/60'"
+                  @click="localRegisterType = 'enterprise'"
+                >
+                  企業版
+                </button>
+              </div>
+
               <!-- 上半部：產品特點 -->
               <div class="mb-8">
                 <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-4">
-                  {{ registerType === "enterprise" ? "企業版功能" : "個人版功能" }}
+                  {{ localRegisterType === "enterprise" ? "企業版功能" : "個人版功能" }}
                 </h2>
                 <div class="space-y-4">
                   <div class="flex items-start gap-3">
@@ -86,6 +110,22 @@
                       </p>
                     </div>
                   </div>
+                  <div
+                    v-if="localRegisterType === 'enterprise'"
+                    class="flex items-start gap-3"
+                  >
+                    <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+                      ✓
+                    </div>
+                    <div>
+                      <h3 class="font-semibold text-slate-900 dark:text-slate-100 mb-1">
+                        專屬子域名與團隊協作
+                      </h3>
+                      <p class="text-sm text-slate-600 dark:text-slate-400">
+                        企業版支援專屬登入網址與多使用者協作，對應你現在的子網域多租戶設計。
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -124,7 +164,7 @@
           <div class="flex flex-1 flex-col overflow-y-auto">
             <div class="flex h-14 shrink-0 items-center justify-between border-b border-slate-200 dark:border-slate-700 px-6">
               <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                {{ registerType === "enterprise" ? "企業註冊" : "個人註冊" }}
+                免費立即體驗
               </h2>
               <button
                 type="button"
@@ -138,26 +178,66 @@
             </div>
 
             <div class="flex-1 p-6">
-              <!-- 手機驗證步驟 -->
-              <div v-if="step === 'phone'" class="space-y-6">
+              <!-- 註冊方式頁籤 -->
+              <div class="mb-6 flex rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-900/40 p-1">
+                <button
+                  type="button"
+                  class="flex-1 rounded-lg px-3 py-2 text-sm font-medium transition"
+                  :class="registerMethod === 'phone'
+                    ? 'bg-blue-600 text-white shadow'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'"
+                  @click="switchRegisterMethod('phone')"
+                >
+                  手機註冊
+                </button>
+                <button
+                  type="button"
+                  class="flex-1 rounded-lg px-3 py-2 text-sm font-medium transition"
+                  :class="registerMethod === 'email'
+                    ? 'bg-blue-600 text-white shadow'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'"
+                  @click="switchRegisterMethod('email')"
+                >
+                  Email 註冊
+                </button>
+                <button
+                  type="button"
+                  class="flex-1 rounded-lg px-3 py-2 text-sm font-medium transition text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  @click="handleGoogleLogin"
+                >
+                  Google 登入
+                </button>
+              </div>
+
+              <!-- 手機 / Email 輸入步驟 -->
+              <div v-if="step === 'input'" class="space-y-6">
                 <div>
                   <h3 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">
-                    輸入手機號碼
+                    {{ registerMethod === "phone" ? "輸入手機號碼" : "輸入電子郵件" }}
                   </h3>
                   <p class="text-sm text-slate-600 dark:text-slate-400">
-                    我們將發送驗證碼到您的手機
+                    我們將發送驗證碼到您的{{ registerMethod === "phone" ? "手機" : "電子郵件" }}
                   </p>
                 </div>
 
                 <div class="space-y-4">
                   <div>
                     <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      手機號碼
+                      {{ registerMethod === "phone" ? "手機號碼" : "電子郵件" }}
                     </label>
                     <input
+                      v-if="registerMethod === 'phone'"
                       v-model="phoneForm.phone"
                       type="tel"
                       placeholder="0912-345-678"
+                      class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-3 text-slate-900 dark:text-slate-100 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                      @keyup.enter="sendVerificationCode"
+                    />
+                    <input
+                      v-else
+                      v-model="emailInput"
+                      type="email"
+                      placeholder="your@email.com"
                       class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-3 text-slate-900 dark:text-slate-100 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                       @keyup.enter="sendVerificationCode"
                     />
@@ -166,7 +246,7 @@
                   <button
                     type="button"
                     class="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
-                    :disabled="loading || !phoneForm.phone"
+                    :disabled="loading || (registerMethod === 'phone' ? !phoneForm.phone : !emailInput)"
                     @click="sendVerificationCode"
                   >
                     {{ loading ? "發送中..." : "發送驗證碼" }}
@@ -181,7 +261,7 @@
                     輸入驗證碼
                   </h3>
                   <p class="text-sm text-slate-600 dark:text-slate-400">
-                    已發送驗證碼至 {{ phoneForm.phone }}
+                    已發送驗證碼至 {{ registerMethod === "phone" ? phoneForm.phone : emailInput }}
                   </p>
                 </div>
 
@@ -211,9 +291,9 @@
                     <button
                       type="button"
                       class="text-sm text-slate-600 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
-                      @click="step = 'phone'"
+                      @click="step = 'input'"
                     >
-                      返回修改手機
+                      返回修改{{ registerMethod === "phone" ? "手機" : "Email" }}
                     </button>
                   </div>
 
@@ -235,7 +315,7 @@
                     設定帳號密碼
                   </h3>
                   <p class="text-sm text-slate-600 dark:text-slate-400">
-                    或使用 Google 快速登入
+                    已通過 {{ registerMethod === "phone" ? "手機" : "Email" }} 驗證，請設定登入帳號。
                   </p>
                 </div>
 
@@ -249,6 +329,7 @@
                       type="email"
                       placeholder="your@email.com"
                       class="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-3 text-slate-900 dark:text-slate-100 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                      :readonly="registerMethod === 'email'"
                     />
                   </div>
 
@@ -277,29 +358,13 @@
                   </div>
 
                   <div class="relative">
-                    <div class="absolute inset-0 flex items-center">
-                      <div class="w-full border-t border-slate-300 dark:border-slate-600" />
+                    <div class="absolute inset-0 flex items-center pointer-events-none">
+                      <div class="w-full border-t border-dashed border-slate-300 dark:border-slate-600" />
                     </div>
-                    <div class="relative flex justify-center text-xs uppercase">
-                      <span class="bg-white dark:bg-slate-900 px-2 text-slate-500 dark:text-slate-400">
-                        或
-                      </span>
+                    <div class="relative flex justify-center text-xs uppercase text-slate-500 dark:text-slate-400">
+                      只需一步即可建立帳號
                     </div>
                   </div>
-
-                  <button
-                    type="button"
-                    class="w-full flex items-center justify-center gap-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 shadow-sm transition hover:bg-slate-50 dark:hover:bg-slate-700"
-                    @click="handleGoogleLogin"
-                  >
-                    <svg class="h-5 w-5" viewBox="0 0 24 24">
-                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                    </svg>
-                    使用 Google 登入
-                  </button>
 
                   <button
                     type="button"
@@ -311,6 +376,7 @@
                   </button>
                 </div>
               </div>
+              
             </div>
           </div>
         </div>
@@ -337,13 +403,23 @@ const emit = defineEmits<{
 
 const router = useRouter();
 
-const step = ref<"phone" | "verify" | "account">("phone");
+// 左側：本地方案狀態（個人 / 企業）
+const localRegisterType = ref<"enterprise" | "individual">(props.registerType);
+
+// 右側：註冊方式與步驟
+type RegisterMethod = "phone" | "email";
+type RegisterStep = "input" | "verify" | "account";
+
+const registerMethod = ref<RegisterMethod>("phone");
+const step = ref<RegisterStep>("input");
 const loading = ref(false);
 
 const phoneForm = ref({
   phone: "",
   code: ""
 });
+
+const emailInput = ref("");
 
 const accountForm = ref({
   email: "",
@@ -353,21 +429,32 @@ const accountForm = ref({
 
 watch(() => props.open, (newVal) => {
   if (newVal) {
-    step.value = "phone";
+    // dialog 打開時重置狀態
+    localRegisterType.value = props.registerType;
+    registerMethod.value = "phone";
+    step.value = "input";
     phoneForm.value = { phone: "", code: "" };
+    emailInput.value = "";
     accountForm.value = { email: "", password: "", passwordConfirm: "" };
   }
 });
 
+function switchRegisterMethod(method: RegisterMethod) {
+  if (registerMethod.value === method) return;
+  registerMethod.value = method;
+  step.value = "input";
+  phoneForm.value = { phone: "", code: "" };
+  emailInput.value = "";
+}
+
 async function sendVerificationCode() {
-  if (!phoneForm.value.phone) {
-    return;
-  }
+  if (registerMethod.value === "phone" && !phoneForm.value.phone) return;
+  if (registerMethod.value === "email" && !emailInput.value) return;
 
   loading.value = true;
   try {
-    // TODO: 實作發送驗證碼 API
-    // 這裡先模擬成功
+    // TODO: 實作實際簡訊 / Email 驗證碼 API
+    // 目前先用延遲模擬成功
     await new Promise(resolve => setTimeout(resolve, 1000));
     step.value = "verify";
   } catch (error) {
@@ -384,10 +471,13 @@ async function verifyCode() {
 
   loading.value = true;
   try {
-    // TODO: 實作驗證碼驗證 API
-    // 這裡先模擬成功
+    // TODO: 實作驗證碼驗證 API（依據手機或 Email）
+    // 目前先用延遲模擬成功
     await new Promise(resolve => setTimeout(resolve, 1000));
     step.value = "account";
+    if (registerMethod.value === "email") {
+      accountForm.value.email = emailInput.value;
+    }
   } catch (error) {
     console.error("驗證碼錯誤", error);
   } finally {
@@ -408,7 +498,7 @@ async function createAccount() {
       password: accountForm.value.password,
       options: {
         data: {
-          phone: phoneForm.value.phone
+          phone: registerMethod.value === "phone" ? phoneForm.value.phone : null
         }
       }
     });
@@ -421,8 +511,19 @@ async function createAccount() {
     if (data.user) {
       await supabaseClient.from("profiles").insert({
         id: data.user.id,
-        phone: phoneForm.value.phone
+        phone: registerMethod.value === "phone" ? phoneForm.value.phone : null
       });
+    }
+
+    // 嘗試直接登入（開發 / Demo 模式）
+    const { error: signInError } = await supabaseClient.auth.signInWithPassword({
+      email: accountForm.value.email,
+      password: accountForm.value.password
+    });
+
+    if (signInError) {
+      // 自動登入失敗不阻擋後續流程，使用者仍可在 Onboarding 中手動登入
+      console.error("自動登入失敗", signInError);
     }
 
     // 導向介紹頁面
@@ -430,7 +531,7 @@ async function createAccount() {
     router.push({
       name: "onboarding",
       query: {
-        phone: phoneForm.value.phone,
+        phone: registerMethod.value === "phone" ? phoneForm.value.phone : undefined,
         email: accountForm.value.email
       }
     });

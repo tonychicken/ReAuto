@@ -9,9 +9,6 @@
             <div class="flex h-10 w-20 items-center justify-center rounded-lg bg-blue-600 text-white font-bold text-xl">
               ReAuto
             </div>
-            <span class="text-lg font-semibold text-slate-900 dark:text-slate-100">
-              車商庫存管理平台
-            </span>
           </div>
 
           <!-- 導覽選單 -->
@@ -41,13 +38,6 @@
 
           <!-- 行動按鈕 -->
           <div class="flex items-center gap-3">
-            <button
-              type="button"
-              class="hidden sm:inline-flex items-center rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
-              @click="openRegisterDialog('individual')"
-            >
-              個人註冊
-            </button>
             <button
               type="button"
               class="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
@@ -336,7 +326,7 @@ const newsList = [
   }
 ];
 
-function openRegisterDialog(type: "enterprise" | "individual") {
+function openRegisterDialog(type: "enterprise" | "individual" = "enterprise") {
   registerType.value = type;
   registerDialogOpen.value = true;
 }

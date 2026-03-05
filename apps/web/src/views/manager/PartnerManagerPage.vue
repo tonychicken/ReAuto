@@ -34,159 +34,161 @@
       </button>
     </header>
 
-    <!-- Form Section（跟倉庫一樣的展開樣式） -->
+    <!-- Form Dialog -->
     <Transition
       enter-active-class="transition duration-200 ease-out"
-      enter-from-class="opacity-0 -translate-y-2"
-      enter-to-class="opacity-100 translate-y-0"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
       leave-active-class="transition duration-150 ease-in"
-      leave-from-class="opacity-100 translate-y-0"
-      leave-to-class="opacity-0 -translate-y-2"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
     >
-      <section
+      <div
         v-if="showForm"
-        class="rounded-xl border border-app-border bg-app-surface p-6 shadow-lg"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       >
-        <div class="mb-4 flex items-center justify-between">
-          <h3 class="text-lg font-semibold text-app-text-primary">
-            {{ editingId ? "編輯服務廠" : "新增服務廠" }}
-          </h3>
-          <button
-            type="button"
-            class="rounded-lg p-1.5 text-app-text-muted hover:bg-app-muted hover:text-app-text-primary"
-            @click="closeForm"
-          >
-            <svg
-              class="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        </div>
-
-        <form
-          class="grid gap-4 md:grid-cols-2"
-          @submit.prevent="handleSubmit"
-        >
-          <div class="space-y-1.5">
-            <label class="block text-sm font-medium text-app-text-primary">
-              店家名稱 <span class="text-red-500">*</span>
-            </label>
-            <input
-              v-model="form.name"
-              type="text"
-              required
-              placeholder="例如：XX 維修廠"
-              class="w-full rounded-lg border border-app-border bg-app-surface px-3 py-2.5 text-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-app-text-primary"
-            />
-          </div>
-
-          <div class="space-y-1.5">
-            <label class="block text-sm font-medium text-app-text-primary">
-              類型
-            </label>
-            <select
-              v-model="form.type"
-              class="w-full rounded-lg border border-app-border bg-app-surface px-3 py-2.5 text-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-app-text-primary"
-            >
-              <option value="">
-                未指定
-              </option>
-              <option value="repair_shop">
-                維修廠
-              </option>
-              <option value="detailing">
-                美容廠
-              </option>
-              <option value="inspection">
-                驗車站
-              </option>
-              <option value="tire">
-                輪胎店
-              </option>
-              <option value="other">
-                其他
-              </option>
-            </select>
-          </div>
-
-          <div class="space-y-1.5">
-            <label class="block text-sm font-medium text-app-text-primary">
-              聯絡人
-            </label>
-            <input
-              v-model="form.contact_name"
-              type="text"
-              placeholder="聯絡人姓名"
-              class="w-full rounded-lg border border-app-border bg-app-surface px-3 py-2.5 text-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-app-text-primary"
-            />
-          </div>
-
-          <div class="space-y-1.5">
-            <label class="block text-sm font-medium text-app-text-primary">
-              聯絡電話
-            </label>
-            <input
-              v-model="form.contact_phone"
-              type="text"
-              placeholder="電話"
-              class="w-full rounded-lg border border-app-border bg-app-surface px-3 py-2.5 text-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-app-text-primary"
-            />
-          </div>
-
-          <div class="md:col-span-2 flex items-center gap-3 pt-2">
-            <button
-              type="submit"
-              class="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-primary-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
-              :disabled="submitting"
-            >
-              <svg
-                v-if="submitting"
-                class="h-4 w-4 animate-spin"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  class="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  stroke-width="4"
-                />
-                <path
-                  class="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                />
-              </svg>
-              {{ submitting ? "處理中..." : editingId ? "儲存變更" : "新增服務廠" }}
-            </button>
+        <div class="w-full max-w-2xl rounded-xl border border-app-border bg-app-surface p-6 shadow-xl">
+          <div class="mb-4 flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-app-text-primary">
+              {{ editingId ? "編輯服務廠" : "新增服務廠" }}
+            </h3>
             <button
               type="button"
-              class="rounded-lg border border-app-border px-5 py-2.5 text-sm font-medium text-app-text-primary transition hover:bg-app-muted"
+              class="rounded-lg p-1.5 text-app-text-muted hover:bg-app-muted hover:text-app-text-primary"
               @click="closeForm"
             >
-              取消
+              <svg
+                class="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
             </button>
           </div>
 
-          <div
-            v-if="error"
-            class="md:col-span-2 rounded-lg bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-700 dark:text-red-400"
+          <form
+            class="grid gap-4 md:grid-cols-2"
+            @submit.prevent="handleSubmit"
           >
-            {{ error }}
-          </div>
-        </form>
-      </section>
+            <div class="space-y-1.5">
+              <label class="block text-sm font-medium text-app-text-primary">
+                店家名稱 <span class="text-red-500">*</span>
+              </label>
+              <input
+                v-model="form.name"
+                type="text"
+                required
+                placeholder="例如：XX 維修廠"
+                class="w-full rounded-lg border border-app-border bg-app-surface px-3 py-2.5 text-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-app-text-primary"
+              />
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="block text-sm font-medium text-app-text-primary">
+                類型
+              </label>
+              <select
+                v-model="form.type"
+                class="w-full rounded-lg border border-app-border bg-app-surface px-3 py-2.5 text-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-app-text-primary"
+              >
+                <option value="">
+                  未指定
+                </option>
+                <option value="repair_shop">
+                  維修廠
+                </option>
+                <option value="detailing">
+                  美容廠
+                </option>
+                <option value="inspection">
+                  驗車站
+                </option>
+                <option value="tire">
+                  輪胎店
+                </option>
+                <option value="other">
+                  其他
+                </option>
+              </select>
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="block text-sm font-medium text-app-text-primary">
+                聯絡人
+              </label>
+              <input
+                v-model="form.contact_name"
+                type="text"
+                placeholder="聯絡人姓名"
+                class="w-full rounded-lg border border-app-border bg-app-surface px-3 py-2.5 text-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-app-text-primary"
+              />
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="block text-sm font-medium text-app-text-primary">
+                聯絡電話
+              </label>
+              <input
+                v-model="form.contact_phone"
+                type="text"
+                placeholder="電話"
+                class="w-full rounded-lg border border-app-border bg-app-surface px-3 py-2.5 text-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-app-text-primary"
+              />
+            </div>
+
+            <div class="md:col-span-2 flex items-center gap-3 pt-2">
+              <button
+                type="submit"
+                class="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-primary-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+                :disabled="submitting"
+              >
+                <svg
+                  v-if="submitting"
+                  class="h-4 w-4 animate-spin"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  />
+                  <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+                {{ submitting ? "處理中..." : editingId ? "儲存變更" : "新增服務廠" }}
+              </button>
+              <button
+                type="button"
+                class="rounded-lg border border-app-border px-5 py-2.5 text-sm font-medium text-app-text-primary transition hover:bg-app-muted"
+                @click="closeForm"
+              >
+                取消
+              </button>
+            </div>
+
+            <div
+              v-if="error"
+              class="md:col-span-2 rounded-lg bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-700 dark:text-red-400"
+            >
+              {{ error }}
+            </div>
+          </form>
+        </div>
+      </div>
     </Transition>
 
     <!-- List Section -->
